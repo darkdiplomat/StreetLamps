@@ -15,7 +15,7 @@ public class StreetLampsListener extends PluginListener{
     public boolean onSignChange(Player player, Sign sign){
         if(sign.getText(0).toLowerCase().matches("\\[streetlamp\\]|\\[sl\\]")){
             if(player.canUseCommand("/streetlamps")){
-                Location loc = new Location(sign.getWorld(), sign.getX(), sign.getY(), sign.getZ());
+                LampLocation loc = new LampLocation(sign.getWorld().getName(), sign.getWorld().getType().toIndex(), sign.getX(), sign.getY(), sign.getZ());
                 SLD.addLoc(loc);
                 player.sendMessage("§6New StreetLamp Created!");
                 sign.setText(0, "§6[StreetLamp]");
@@ -28,12 +28,12 @@ public class StreetLampsListener extends PluginListener{
     }
     
     public boolean onBlockBreak(Player player, Block block){
-        if(block.getType() == 63){
+        if(block.blockType.equals(Block.Type.WallSign) || block.blockType.equals(Block.Type.SignPost)){
             Sign sign = (Sign) block.getWorld().getComplexBlock(block);
             if(sign.getText(0).equalsIgnoreCase("§6[StreetLamp]")){
-                Location loc = new Location(sign.getWorld(), sign.getX(), sign.getY(), sign.getZ());
+                LampLocation loc = new LampLocation(sign.getWorld().getName(), sign.getWorld().getType().toIndex(), sign.getX(), sign.getY(), sign.getZ());
                 SLD.removeLoc(loc);
-                for(int y = sign.getY(); y < loc.y+8; y++){
+                for(int y = sign.getY(); y < loc.getY()+8; y++){
                     Block glow = sign.getWorld().getBlockAt(sign.getX(), y, sign.getZ());
                     if(glow.getType() == 89){
                         glow.setType(20);
@@ -61,13 +61,13 @@ public class StreetLampsListener extends PluginListener{
         if(newValue){
             isRain = true;
             if(isDay){
-                new StreetLampsThread(this, SLD.getLamps(), true, SLD.getLoadUnloaded()).start();
+                new UpdateAllLampsThread(this, SLD.getallchunks(), true).start();
             }
         }
         else{
             isRain = false;
             if(isDay){
-                new StreetLampsThread(this, SLD.getLamps(), false, SLD.getLoadUnloaded()).start();
+                new UpdateAllLampsThread(this, SLD.getallchunks(), false).start();
             }
         }
         return false;
@@ -78,7 +78,7 @@ public class StreetLampsListener extends PluginListener{
             if(isDay){
                 isDay = false;
                 if(!isRain){
-                    new StreetLampsThread(this, SLD.getLamps(), true, SLD.getLoadUnloaded()).start();
+                    new UpdateAllLampsThread(this, SLD.getallchunks(), true).start();
                 }
             }
         }
@@ -86,7 +86,7 @@ public class StreetLampsListener extends PluginListener{
             if(!isDay){
                 isDay = true;
                 if(!isRain){
-                    new StreetLampsThread(this, SLD.getLamps(), false, SLD.getLoadUnloaded()).start();
+                    new UpdateAllLampsThread(this, SLD.getallchunks(), false).start();
                 }
             }
         }
@@ -94,9 +94,9 @@ public class StreetLampsListener extends PluginListener{
     }
     
     public boolean onBlockRightClick(Player player, Block block, Item iih){
-        if(block.getType() == 63){
+        if(block.blockType.equals(Block.Type.WallSign) || block.blockType.equals(Block.Type.SignPost)){
             Sign sign = (Sign) block.getWorld().getComplexBlock(block);
-            if(sign.getText(0).equalsIgnoreCase("§6[StreetLamp]")){
+            if(sign.getText(0).equals("§6[StreetLamp]")){
                 for(int y = block.getY(); y < block.getY()+8; y++){
                     Block glow = block.getWorld().getBlockAt(block.getX(), y, block.getZ());
                     if(!isDay || isRain){
@@ -111,6 +111,27 @@ public class StreetLampsListener extends PluginListener{
                         glow.update();
                     }
                 }
+                if(player.isAdmin()){
+                    LampLocation loc = new LampLocation(sign.getWorld().getName(), sign.getWorld().getType().toIndex(), sign.getX(), sign.getY(), sign.getZ());
+                    SLD.addLoc(loc);
+                }
+                if(!sign.getText(1).toLowerCase().matches("x\\-|x\\+|z\\-|z\\+|y\\-")){
+                   sign.setText(1, "");
+                   sign.update();
+                }
+                if(!sign.getText(2).equals("")){
+                    try{
+                        Integer.parseInt(sign.getText(2));
+                    }
+                    catch(NumberFormatException NFE){
+                        sign.setText(2, "");
+                        sign.update();
+                    }
+                }
+                if(!sign.getText(3).equals("")){
+                    sign.setText(3, "");
+                    sign.update();
+                }
                 return true;
             }
         }
@@ -122,7 +143,7 @@ public class StreetLampsListener extends PluginListener{
             if(args.length > 1){
                 if(args[1].equalsIgnoreCase("list")){
                     int page = 1;
-                    ArrayList<Location> locs = SLD.getLamps();
+                    ArrayList<LampLocation> locs = SLD.getAllLamps();
                     int lastpage = Math.round(locs.size()/9);
                     if(args.length > 2){
                         try{
@@ -138,17 +159,17 @@ public class StreetLampsListener extends PluginListener{
                     
                     player.sendMessage("§6StreetLamps Locations Page: "+page+" of "+lastpage);
                     for(int i = page-1; i < page+8 && i < locs.size(); i++){
-                        Location loc = locs.get(i);
-                        player.sendMessage("§7X: §8"+(int)loc.x+" §7Y: §8"+(int)loc.y+" §7Z: §8"+(int)loc.z+" §7World: §8"+loc.getWorld().getType().name());
+                        LampLocation loc = locs.get(i);
+                        player.sendMessage("§7X: §8"+loc.getX()+" §7Y: §8"+loc.getY()+" §7Z: §8"+loc.getZ()+" §7World: §8"+loc.getWorld()+" §7Dim: §8"+loc.getDimension());
                     }
                     return true;
                 }
                 else if(args[1].equalsIgnoreCase("forceupdate") && player.isAdmin()){
                     if((!isRain && !isDay) || (isRain && isDay)){
-                        new StreetLampsThread(this, SLD.getLamps(), true, SLD.getLoadUnloaded()).start();
+                        new UpdateAllLampsThread(this, SLD.getallchunks(), true).start();
                     }
                     else if(!isRain && isDay){
-                        new StreetLampsThread(this, SLD.getLamps(), false, SLD.getLoadUnloaded()).start();
+                        new UpdateAllLampsThread(this, SLD.getallchunks(), false).start();
                     }
                     player.sendMessage("§6StreetLamps Activating!");
                     return true;
@@ -162,7 +183,7 @@ public class StreetLampsListener extends PluginListener{
                 else{
                     player.sendMessage("§9--§6 Latest Version Installed! §9--");
                 }
-                player.sendMessage("§9--§6 There are §2"+SLD.getLamps().size()+"§6 Lamps installed on this server. §9--");
+                player.sendMessage("§9--§6 There are §2"+SLD.getAllLamps().size()+"§6 Lamps installed on this server. §9--");
                 return true;
             }
         }
@@ -174,6 +195,30 @@ public class StreetLampsListener extends PluginListener{
         return false;
     }
     
+    public void onChunkLoad(Chunk chunk){
+        LampChunk lchunk = SLD.getChunk(new LampChunk(chunk.getX(), chunk.getZ(), chunk.getWorld().getName(), chunk.getWorld().getType().toIndex()));
+        if(lchunk != null){
+            if(!lchunk.isLoaded()){
+                lchunk.setLoaded(true);
+            }
+            if(!isDay || isRain){
+                new UpdateChunkLamps(this, lchunk, true).start();
+            }
+            else{
+                new UpdateChunkLamps(this, lchunk, false).start();
+            }
+        }
+    }
+    
+    public void onChunkUnLoad(Chunk chunk){
+        LampChunk lchunk = SLD.getChunk(new LampChunk(chunk.getX(), chunk.getZ(), chunk.getWorld().getName(), chunk.getWorld().getType().toIndex()));
+        if(lchunk != null){
+            if(lchunk.isLoaded()){
+                lchunk.setLoaded(false);
+            }
+        }
+    }
+    
     public boolean onConsoleCommand(String[] args){
         if(args[0].equalsIgnoreCase("stop") || args[0].equalsIgnoreCase("save-all")){
             SLD.save();
@@ -181,25 +226,3 @@ public class StreetLampsListener extends PluginListener{
         return false;
     }
 }
-
-/*******************************************************************************\
-* StreetLamps v1.x                                                              *
-* Copyright (C) 2012 Visual Illusions Entertainment                             *
-* @author darkdiplomat <darkdiplomat@visualillusionsent.net>                    *
-*                                                                               *
-* This file is part of StreetLamps                                              *
-*                                                                               *
-* This program is free software: you can redistribute it and/or modify          *
-* it under the terms of the GNU General Public License as published by          *
-* the Free Software Foundation, either version 3 of the License, or             *
-* (at your option) any later version.                                           *
-*                                                                               *
-* This program is distributed in the hope that it will be useful,               *
-* but WITHOUT ANY WARRANTY; without even the implied warranty of                *
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                          *
-* See the GNU General Public License for more details.                          *
-*                                                                               *
-* You should have received a copy of the GNU General Public License             *
-* along with this program.  If not, see http://www.gnu.org/licenses/gpl.html    *
-*                                                                               *
-\*******************************************************************************/

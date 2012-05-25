@@ -1,0 +1,68 @@
+
+public class LampLocation {
+    
+    private String world;
+    private int x, y, z, dimension;
+    
+    public LampLocation(String world, int dimension, int x, int y, int z){
+        this.world = world;
+        this.dimension = dimension;
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    public String getWorld(){
+        return world;
+    }
+    
+    public int getX(){
+        return x;
+    }
+    
+    public int getY(){
+        return y;
+    }
+    
+    public int getZ(){
+        return z;
+    }
+    
+    public int getDimension(){
+        return dimension;
+    }
+    
+    public LampChunk getChunk(){
+        return new LampChunk(x << 4, z << 4, world, dimension);
+    }
+    
+    public int hashCode(){
+        return toString().hashCode();
+    }
+    
+    public boolean equals(Object obj){
+        if(obj instanceof LampLocation){
+            LampLocation toCheck = (LampLocation)obj;
+            return toCheck.getX() == this.x &&
+                    toCheck.getY() == this.y &&
+                    toCheck.getZ() == this.z &&
+                    toCheck.getDimension() == this.dimension &&
+                    toCheck.getWorld().equals(this.world);
+        }
+        return false;
+    }
+    
+    public String toString(){
+        StringBuilder toRet = new StringBuilder();
+        toRet.append(world);
+        toRet.append(',');
+        toRet.append(dimension);
+        toRet.append(',');
+        toRet.append(x);
+        toRet.append(',');
+        toRet.append(y);
+        toRet.append(',');
+        toRet.append(z);
+        return toRet.toString();
+    }
+}

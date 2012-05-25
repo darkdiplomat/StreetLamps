@@ -10,18 +10,14 @@ public class StreetLampsData {
     
     private final File SLDir = new File("plugins/config/StreetLamps/");
     private final String SLLoc = "plugins/config/StreetLamps/StreetLampLocations.txt";
-    private final PropertiesFile SLPF = new PropertiesFile("plugins/config/StreetLamps/StreetLamps.ini");
     private File SLLocs;
-    private ArrayList<Location> Lamps;
-    private Server serv = etc.getServer();
-    private boolean loadUnloaded = true;
+    private ArrayList<LampChunk> lampchunks;
     
     public StreetLampsData(){
-        Lamps = new ArrayList<Location>();
+        lampchunks = new ArrayList<LampChunk>();
         if(!SLDir.exists()){
             SLDir.mkdirs();
         }
-        loadUnloaded = SLPF.getBoolean("Load-UnloadedChunks", true);
         SLLocs = new File(SLLoc);
         if(!SLLocs.exists()){
             try {
@@ -36,97 +32,107 @@ public class StreetLampsData {
     }
     
     public void save(){
-        try {
-            SLLocs.delete();
-            SLLocs.createNewFile();
-            BufferedWriter out = new BufferedWriter(new FileWriter(SLLocs));
-            for(Location loc : Lamps){
-                int x = (int)loc.x, y = (int)loc.y, z = (int)loc.z, w = loc.dimension;
-                out.write(w+","+x+","+y+","+z); out.newLine();
+        new Thread(){
+            public void run(){
+                try {
+                    SLLocs.delete();
+                    SLLocs.createNewFile();
+                    BufferedWriter out = new BufferedWriter(new FileWriter(SLLocs));
+                    for(LampChunk lchunk : lampchunks){
+                        ArrayList<LampLocation> lamplocs = lchunk.getLamps();
+                        for(LampLocation loc : lamplocs){
+                            out.write(loc.toString()); out.newLine();
+                        }
+                    }
+                    out.close();
+                } catch (IOException e) {
+                    StreetLamps.log.warning("[StreetLamps] Unable to save to StreetLampLocations.txt");
+                }
             }
-            out.close();
-        } catch (IOException e) {
-            StreetLamps.log.warning("[StreetLamps] Unable to save to StreetLampLocations.txt");
-        }
+        }.start();
     }
     
     private void load(){
-        int i = 0;
-        try{
-            BufferedReader in = new BufferedReader(new FileReader(SLLocs));
-            String line;
-            while ((line = in.readLine()) != null) {
-                String[] coords = line.split(",");
+        new Thread(){
+            public void run(){
+                int i = 0;
                 try{
-                    int w = Integer.parseInt(coords[0]);
-                    double x = Double.parseDouble(coords[1]);
-                    double y = Double.parseDouble(coords[2]);
-                    double z = Double.parseDouble(coords[3]);
-                    serv.getWorld(w).loadChunk((int)x, (int)y, (int)z);
-                    Block block = serv.getWorld(w).getBlockAt((int)x, (int)y, (int)z);
-                    if(block.getType() == 63){
-                        Sign sign = (Sign)serv.getWorld(w).getComplexBlock(block);
-                        if(sign.getText(0).equals("§6[StreetLamp]")){
-                            Location loc = new Location(serv.getWorld(w), x, y, z);
-                            Lamps.add(loc);
-                            i++;
+                    BufferedReader in = new BufferedReader(new FileReader(SLLocs));
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        String[] coords = line.split(",");
+                        try{
+                            if(coords.length == 5){
+                                String world = coords[0];
+                                int dim = Integer.parseInt(coords[1]);
+                                int x = Integer.parseInt(coords[2]);
+                                int y = Integer.parseInt(coords[3]);
+                                int z = Integer.parseInt(coords[4]);
+                                LampLocation loc = new LampLocation(world, dim, x, y, z);
+                                addLoc(loc);
+                                i++;
+                            }
+                            else{
+                                int dim = Integer.parseInt(coords[0]);
+                                int x = Integer.parseInt(coords[1]);
+                                int y = Integer.parseInt(coords[2]);
+                                int z = Integer.parseInt(coords[3]);
+                                LampLocation loc = new LampLocation(etc.getServer().getDefaultWorld().getName(), dim, x, y, z);
+                                addLoc(loc);
+                                i++;
+                            }
+                        }
+                        catch(NumberFormatException NFE){
+                            continue;
+                        }
+                        catch(ArrayIndexOutOfBoundsException AIOOBE){
+                            continue;
                         }
                     }
+                    in.close();
                 }
-                catch(NumberFormatException NFE){
-                    continue;
+                catch(IOException IOE){
+                    StreetLamps.log.warning("[StreetLamps] Unable to load StreetLampLoactions.txt");
                 }
-                catch(ArrayIndexOutOfBoundsException AIOOBE){
-                    continue;
-                }
+                StreetLamps.log.info("[StreetLamps]: Loaded "+i+" StreetLamps");
             }
-            in.close();
-        }
-        catch(IOException IOE){
-            StreetLamps.log.warning("[StreetLamps] Unable to load StreetLampLoactions.txt");
-        }
-        StreetLamps.log.info("[StreetLamps]: Loaded "+i+" StreetLamps");
+        }.start();
     }
     
-    public void addLoc(Location loc){
-        if(!Lamps.contains(loc)){
-            Lamps.add(loc);
+    public void addLoc(LampLocation loc){
+        LampChunk lchunk = loc.getChunk();
+        if(lampchunks.contains(lchunk)){
+            lchunk = lampchunks.get(lampchunks.indexOf(lchunk));
+            lchunk.addLamp(loc);
         }
-    }
-    
-    public void removeLoc(Location loc){
-        if(Lamps.contains(loc)){
-            Lamps.remove(loc);
+        else{
+            lchunk.addLamp(loc);
+            lampchunks.add(lchunk);
         }
     }
     
-    public ArrayList<Location> getLamps(){
-        return Lamps;
+    public void removeLoc(LampLocation loc){
+        if(lampchunks.contains(loc.getChunk())){
+            lampchunks.get(lampchunks.indexOf(loc.getChunk())).removeLamp(loc);
+        }
     }
     
-    public boolean getLoadUnloaded(){
-        return loadUnloaded;
+    public LampChunk getChunk(LampChunk chunk){
+        if(lampchunks.contains(chunk)){
+            return lampchunks.get(lampchunks.indexOf(chunk));
+        }
+        return null;
+    }
+    
+    public ArrayList<LampLocation> getAllLamps(){
+        ArrayList<LampLocation> locs = new ArrayList<LampLocation>();
+        for(LampChunk chunk : lampchunks){
+            locs.addAll(chunk.getLamps());
+        }
+        return locs;
+    }
+    
+    public ArrayList<LampChunk> getallchunks(){
+        return lampchunks;
     }
 }
-
-/*******************************************************************************\
-* StreetLamps v1.x                                                              *
-* Copyright (C) 2012 Visual Illusions Entertainment                             *
-* @author darkdiplomat <darkdiplomat@visualillusionsent.net>                    *
-*                                                                               *
-* This file is part of StreetLamps                                              *
-*                                                                               *
-* This program is free software: you can redistribute it and/or modify          *
-* it under the terms of the GNU General Public License as published by          *
-* the Free Software Foundation, either version 3 of the License, or             *
-* (at your option) any later version.                                           *
-*                                                                               *
-* This program is distributed in the hope that it will be useful,               *
-* but WITHOUT ANY WARRANTY; without even the implied warranty of                *
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                          *
-* See the GNU General Public License for more details.                          *
-*                                                                               *
-* You should have received a copy of the GNU General Public License             *
-* along with this program.  If not, see http://www.gnu.org/licenses/gpl.html    *
-*                                                                               *
-\*******************************************************************************/
