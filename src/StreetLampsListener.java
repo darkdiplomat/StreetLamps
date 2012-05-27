@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 public class StreetLampsListener extends PluginListener{
     private boolean isDay = true;
@@ -61,13 +62,13 @@ public class StreetLampsListener extends PluginListener{
         if(newValue){
             isRain = true;
             if(isDay){
-                new UpdateAllLampsThread(this, SLD.getallchunks(), true).start();
+                StreetLamps.threadpool.schedule(new UpdateAllLamps(SLD.getallchunks(), true, false), 5L, TimeUnit.MILLISECONDS);
             }
         }
         else{
             isRain = false;
             if(isDay){
-                new UpdateAllLampsThread(this, SLD.getallchunks(), false).start();
+                StreetLamps.threadpool.schedule(new UpdateAllLamps(SLD.getallchunks(), false, false), 5L, TimeUnit.MILLISECONDS);
             }
         }
         return false;
@@ -78,7 +79,7 @@ public class StreetLampsListener extends PluginListener{
             if(isDay){
                 isDay = false;
                 if(!isRain){
-                    new UpdateAllLampsThread(this, SLD.getallchunks(), true).start();
+                    StreetLamps.threadpool.schedule(new UpdateAllLamps(SLD.getallchunks(), true, false), 5L, TimeUnit.MILLISECONDS);
                 }
             }
         }
@@ -86,7 +87,7 @@ public class StreetLampsListener extends PluginListener{
             if(!isDay){
                 isDay = true;
                 if(!isRain){
-                    new UpdateAllLampsThread(this, SLD.getallchunks(), false).start();
+                    StreetLamps.threadpool.schedule(new UpdateAllLamps(SLD.getallchunks(), false, false), 5L, TimeUnit.MILLISECONDS);
                 }
             }
         }
@@ -165,11 +166,11 @@ public class StreetLampsListener extends PluginListener{
                     return true;
                 }
                 else if(args[1].equalsIgnoreCase("forceupdate") && player.isAdmin()){
-                    if((!isRain && !isDay) || (isRain && isDay)){
-                        new UpdateAllLampsThread(this, SLD.getallchunks(), true).start();
+                    if(!isDay || isRain){
+                        StreetLamps.threadpool.schedule(new UpdateAllLamps(SLD.getallchunks(), true, true), 5L, TimeUnit.MILLISECONDS);
                     }
-                    else if(!isRain && isDay){
-                        new UpdateAllLampsThread(this, SLD.getallchunks(), false).start();
+                    else{
+                        StreetLamps.threadpool.schedule(new UpdateAllLamps(SLD.getallchunks(), false, true), 5L, TimeUnit.MILLISECONDS);
                     }
                     player.sendMessage("§6StreetLamps Activating!");
                     return true;
@@ -195,23 +196,23 @@ public class StreetLampsListener extends PluginListener{
         return false;
     }
     
-    public void onChunkLoad(Chunk chunk){
-        LampChunk lchunk = SLD.getChunk(new LampChunk(chunk.getX(), chunk.getZ(), chunk.getWorld().getName(), chunk.getWorld().getType().toIndex()));
+    public void onChunkLoaded(Chunk chunk){
+        LampChunk lchunk = SLD.getChunk(new LampChunk(chunk));
         if(lchunk != null){
             if(!lchunk.isLoaded()){
                 lchunk.setLoaded(true);
             }
             if(!isDay || isRain){
-                new UpdateChunkLamps(this, lchunk, true).start();
+                StreetLamps.threadpool.schedule(new UpdateChunkLamps(lchunk, true), 5L, TimeUnit.MILLISECONDS);
             }
             else{
-                new UpdateChunkLamps(this, lchunk, false).start();
+                StreetLamps.threadpool.schedule(new UpdateChunkLamps(lchunk, false), 5L, TimeUnit.MILLISECONDS);
             }
         }
     }
     
-    public void onChunkUnLoad(Chunk chunk){
-        LampChunk lchunk = SLD.getChunk(new LampChunk(chunk.getX(), chunk.getZ(), chunk.getWorld().getName(), chunk.getWorld().getType().toIndex()));
+    public void onChunkUnload(Chunk chunk){
+        LampChunk lchunk = SLD.getChunk(new LampChunk(chunk));
         if(lchunk != null){
             if(lchunk.isLoaded()){
                 lchunk.setLoaded(false);

@@ -15,6 +15,14 @@ public class LampChunk {
         this.chunk = getChunk();
     }
     
+    public LampChunk(Chunk chunk){
+        this.x = chunk.getX();
+        this.z = chunk.getZ();
+        this.world = chunk.getWorld().getName();
+        this.dimension = chunk.getWorld().getType().toIndex();
+        this.chunk = chunk;
+    }
+    
     public int getX(){
         return x;
     }
@@ -48,21 +56,22 @@ public class LampChunk {
     }
     
     public boolean isLoaded(){
-        return loaded;
-    }
-    
-    public void verifyLoaded(){
-        if(lamps.isEmpty()) return;
         World[] world = etc.getServer().getWorld(this.world);
         if(world != null){
             World dim = world[dimension];
-            LampLocation loc = lamps.get(0);
-            if(dim.isChunkLoaded(loc.getX(), loc.getY(), loc.getZ())){
+            if(dim.isChunkLoaded(x << 4, 64, z << 4)){
                 loaded = true;
             }
-            else{
-                loaded = false;
-            }
+        }
+        return loaded;
+    }
+    
+    public void load(){
+        World[] world = etc.getServer().getWorld(this.world);
+        if(world != null){
+            World dim = world[dimension];
+            dim.loadChunk(x << 4, 64, z << 4);
+            loaded = true;
         }
     }
     
@@ -70,11 +79,9 @@ public class LampChunk {
         if(chunk != null){
             return chunk;
         }
-        verifyLoaded();
         if(isLoaded()){
             World dim = etc.getServer().getWorld(this.world)[dimension];
-            LampLocation loc = lamps.get(0);
-            this.chunk = dim.getChunk(loc.getX(), loc.getY(), loc.getZ());
+            this.chunk = dim.getChunk(x << 4, 64, z << 4);
             return chunk;
         }
         return null;
@@ -85,15 +92,31 @@ public class LampChunk {
     }
     
     public boolean containsLamp(LampLocation lamp){
+        if(lamps.contains(lamp)){
+            return true;
+        }
         int checkx = lamp.getX() >> 4;
         int checkz = lamp.getZ() >> 4;
         return checkx == x && checkz == z && lamp.getWorld().equals(world) && lamp.getDimension() == dimension;
     }
     
+    public int hashCode(){
+        return (x*97)+(z*97)+world.hashCode()+(dimension*97);
+    }
+    
+    @Override
     public boolean equals(Object obj){
-        if(obj instanceof LampChunk){
-            LampChunk toCheck = (LampChunk)obj;
-            return x == toCheck.getX() && z == toCheck.getZ() && toCheck.getWorld().equals(world) && toCheck.getDimension() == dimension;
+        if(obj instanceof LampLocation){
+            LampLocation check = (LampLocation)obj;
+            if(check.getX() == this.getX()){
+                if(check.getZ() == this.getZ()){
+                    if(check.getDimension() == this.getDimension()){
+                        if(check.getWorld().equals(this.getWorld())){
+                            return true;
+                        }
+                    }
+                }
+            }
         }
         return false;
     }

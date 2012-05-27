@@ -33,21 +33,27 @@ public class LampLocation {
     }
     
     public LampChunk getChunk(){
-        return new LampChunk(x << 4, z << 4, world, dimension);
+        return new LampChunk(x >> 4, z >> 4, world, dimension);
     }
     
     public int hashCode(){
-        return toString().hashCode();
+        return (x*97)+(y*97)+(z*97)+world.hashCode()+(dimension*97);
     }
     
     public boolean equals(Object obj){
         if(obj instanceof LampLocation){
-            LampLocation toCheck = (LampLocation)obj;
-            return toCheck.getX() == this.x &&
-                    toCheck.getY() == this.y &&
-                    toCheck.getZ() == this.z &&
-                    toCheck.getDimension() == this.dimension &&
-                    toCheck.getWorld().equals(this.world);
+            LampLocation check = (LampLocation)obj;
+            if(check.getX() == this.getX()){
+                if(check.getY() == this.getY()){
+                    if(check.getZ() == this.getZ()){
+                        if(check.getDimension() == this.getDimension()){
+                            if(check.getWorld().equals(this.getWorld())){
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
         }
         return false;
     }

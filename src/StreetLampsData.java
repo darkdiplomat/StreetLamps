@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 public class StreetLampsData {
     
@@ -95,39 +96,54 @@ public class StreetLampsData {
                     StreetLamps.log.warning("[StreetLamps] Unable to load StreetLampLoactions.txt");
                 }
                 StreetLamps.log.info("[StreetLamps]: Loaded "+i+" StreetLamps");
+                StreetLamps.threadpool.schedule(new UpdateAllLamps(lampchunks, true, true), 5L, TimeUnit.MILLISECONDS);
             }
         }.start();
     }
     
     public void addLoc(LampLocation loc){
-        LampChunk lchunk = loc.getChunk();
-        if(lampchunks.contains(lchunk)){
-            lchunk = lampchunks.get(lampchunks.indexOf(lchunk));
-            lchunk.addLamp(loc);
-        }
-        else{
+        synchronized(lampchunks){
+            for(LampChunk match : lampchunks){
+                if(match.containsLamp(loc)){
+                    match.addLamp(loc);
+                    return;
+                }
+            }
+            LampChunk lchunk = loc.getChunk();
             lchunk.addLamp(loc);
             lampchunks.add(lchunk);
         }
     }
     
     public void removeLoc(LampLocation loc){
-        if(lampchunks.contains(loc.getChunk())){
-            lampchunks.get(lampchunks.indexOf(loc.getChunk())).removeLamp(loc);
+        synchronized(lampchunks){
+            for(LampChunk match : lampchunks){
+                if(match.containsLamp(loc)){
+                    match.removeLamp(loc);
+                    return;
+                }
+            }
         }
     }
     
     public LampChunk getChunk(LampChunk chunk){
-        if(lampchunks.contains(chunk)){
-            return lampchunks.get(lampchunks.indexOf(chunk));
+        LampChunk theChunk = null;
+        synchronized(lampchunks){
+            for(LampChunk match : lampchunks){
+                if(match.equals(chunk)){
+                    theChunk = match;
+                }
+            }
         }
-        return null;
+        return theChunk;
     }
     
     public ArrayList<LampLocation> getAllLamps(){
         ArrayList<LampLocation> locs = new ArrayList<LampLocation>();
-        for(LampChunk chunk : lampchunks){
-            locs.addAll(chunk.getLamps());
+        synchronized(lampchunks){
+            for(LampChunk chunk : lampchunks){
+                locs.addAll(chunk.getLamps());
+            }
         }
         return locs;
     }
