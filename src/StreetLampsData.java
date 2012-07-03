@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.logging.Level;
 
 public class StreetLampsData {
     
@@ -14,6 +15,7 @@ public class StreetLampsData {
     private final String SLLoc = "plugins/config/StreetLamps/StreetLampLocations.txt";
     private File SLLocs;
     private ArrayList<LampChunk> lampchunks;
+    public static boolean isLoaded = false;
     
     public StreetLampsData(){
         lampchunks = new ArrayList<LampChunk>();
@@ -59,20 +61,19 @@ public class StreetLampsData {
             }
             pw.close();
             br.close();
-            //Delete the original file
             if (!SLLocs.delete()) {
-                System.out.println("Could not delete file");
+                StreetLamps.log.warning("[StreetLamps] Could not delete old file...");
                 return;
             }
             //Rename the new file to the filename the original file had.
             if (!tempFile.renameTo(SLLocs))
-                System.out.println("Could not rename file");
+                StreetLamps.log.warning("[StreetLamps] Could not rename tempfile...");
         }
         catch (FileNotFoundException ex) {
-            ex.printStackTrace();
+            StreetLamps.log.log(Level.WARNING, "[StreetLamps] An unhandled exception occured...", ex);
         }
         catch (IOException ex) {
-            ex.printStackTrace();
+            StreetLamps.log.log(Level.WARNING, "[StreetLamps] An unhandled exception occured...", ex);
         }
     }
     
@@ -104,6 +105,7 @@ public class StreetLampsData {
                         i++;
                     }
                 }
+                
                 catch(NumberFormatException NFE){
                     continue;
                 }
@@ -117,6 +119,7 @@ public class StreetLampsData {
             StreetLamps.log.warning("[StreetLamps] Unable to load StreetLampLoactions.txt");
         }
         StreetLamps.log.info("[StreetLamps]: Loaded "+i+" StreetLamps");
+        isLoaded = true;
     }
     
     public void addLoc(LampLocation loc){
@@ -124,13 +127,18 @@ public class StreetLampsData {
             for(LampChunk match : lampchunks){
                 if(match.containsLamp(loc)){
                     match.addLamp(loc);
-                    addLampToFile(loc);
+                    if(isLoaded){
+                        addLampToFile(loc);
+                    }
                     return;
                 }
             }
             LampChunk lchunk = loc.getChunk();
             lchunk.addLamp(loc);
             lampchunks.add(lchunk);
+            if(isLoaded){
+                addLampToFile(loc);
+            }
         }
     }
     

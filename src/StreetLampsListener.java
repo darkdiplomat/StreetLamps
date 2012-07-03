@@ -31,6 +31,9 @@ public class StreetLampsListener extends PluginListener{
     }
     
     public boolean onBlockBreak(Player player, Block block){
+        if(!StreetLampsData.isLoaded){
+            return false;
+        }
         if(block.blockType.equals(Block.Type.WallSign) || block.blockType.equals(Block.Type.SignPost)){
             Sign sign = (Sign) block.getWorld().getComplexBlock(block);
             if(sign.getText(0).equalsIgnoreCase("§6[StreetLamp]")){
@@ -61,6 +64,9 @@ public class StreetLampsListener extends PluginListener{
     }
     
     public boolean onWeatherChange(World world, boolean newValue){
+        if(!StreetLampsData.isLoaded){
+            return false;
+        }
         if(newValue){
             isRain = true;
             if(isDay){
@@ -83,6 +89,9 @@ public class StreetLampsListener extends PluginListener{
     }
     
     public boolean onTimeChange(World world, long newValue){
+        if(!StreetLampsData.isLoaded){
+            return false;
+        }
         if(this.world.getRelativeTime() >= 12700 && this.world.getRelativeTime() <= 23500){
             if(isDay){
                 isDay = false;
@@ -109,6 +118,9 @@ public class StreetLampsListener extends PluginListener{
     }
     
     public boolean onBlockRightClick(Player player, Block block, Item iih){
+        if(!StreetLampsData.isLoaded){
+            return false;
+        }
         if(block.blockType.equals(Block.Type.WallSign) || block.blockType.equals(Block.Type.SignPost)){
             Sign sign = (Sign) block.getWorld().getComplexBlock(block);
             if(sign.getText(0).equals("§6[StreetLamp]")){
@@ -154,6 +166,9 @@ public class StreetLampsListener extends PluginListener{
     }
     
     public boolean onCommand(Player player, String[] args){
+        if(!StreetLampsData.isLoaded){
+            return false;
+        }
         if(args[0].equalsIgnoreCase("/streetlamps") && player.canUseCommand("/streetlamps")){
             if(args.length > 1){
                 if(args[1].equalsIgnoreCase("list")){
@@ -227,6 +242,9 @@ public class StreetLampsListener extends PluginListener{
     }
     
     public void onChunkLoaded(Chunk chunk){
+        if(!StreetLampsData.isLoaded){
+            return;
+        }
         LampChunk lchunk = SLD.getChunk(new LampChunk(chunk));
         if(lchunk != null){
             if(!isDay || isRain){
