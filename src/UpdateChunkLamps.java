@@ -1,23 +1,14 @@
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 
-public class UpdateChunkLamps implements Runnable{
-    private boolean night;
-    private LampChunk chunk;
+public class UpdateChunkLamps{
     
-    
-    public UpdateChunkLamps(LampChunk chunk,  boolean night){
-        this.night = night;
-        this.chunk = chunk;
-    }
-    
-    public void run(){
+    public static void update(LampChunk chunk, boolean night){
         if(chunk.getLamps().isEmpty()) return;
         try{
             synchronized(chunk.getLamps()){
                 Iterator<LampLocation> itl = chunk.getLamps().iterator();
                 while(itl.hasNext()){
-                    //if(!chunk.isLoaded()) break; //Chunk unloaded during update...
                     LampLocation loc = itl.next();
                     int direction = 0, go = 8;
                     World dim = etc.getServer().getWorld(loc.getWorld())[loc.getDimension()];
@@ -51,28 +42,31 @@ public class UpdateChunkLamps implements Runnable{
                     else{
                         continue;
                     }
-                    //if(!chunk.isLoaded()) break; //Chunk unloaded during update...
                     switch (direction){
                     case 0:
-                        for(int y = loc.getY(); y < loc.getY()+go; ++y){
+                        for(int y = loc.getY(); y < loc.getY()+go; y++){
                             Block block = dim.getBlockAt(loc.getX(), y, loc.getZ());
                             if(night){
-                                if(block.blockType == Block.Type.Glass){
-                                    block.setType(89);
-                                    block.update();
+                                switch(block.blockType){
+                                case Glass: 
+                                    dim.setBlockAt(89, loc.getX(), y, loc.getZ());
                                     break;
-                                }
-                                else if(block.blockType == Block.Type.LightStone){
+                                case LightStone: 
                                     break;
+                                default:
+                                    continue;
                                 }
                             }
-                            else if (block.blockType == Block.Type.LightStone){
-                                block.setType(20);
-                                block.update();
-                                break;
-                            }
-                            else if(block.blockType == Block.Type.Glass){
-                                break;
+                            else{
+                                switch(block.blockType){
+                                case Glass:
+                                    break;
+                                case LightStone:
+                                    dim.setBlockAt(20, loc.getX(), y, loc.getZ());
+                                    break;
+                                default:
+                                    continue;
+                                }
                             }
                         }
                         break;
@@ -81,22 +75,26 @@ public class UpdateChunkLamps implements Runnable{
                         for(int x = loc.getX(); x > loc.getX()-go; --x){
                             Block block = dim.getBlockAt(x, loc.getY(), loc.getZ());
                             if(night){
-                                if(block.blockType == Block.Type.Glass){
-                                    block.setType(89);
-                                    block.update();
+                                switch(block.blockType){
+                                case Glass: 
+                                    dim.setBlockAt(89, x, loc.getY(), loc.getZ());
                                     break;
-                                }
-                                else if(block.blockType == Block.Type.LightStone){
+                                case LightStone: 
                                     break;
+                                default:
+                                    continue;
                                 }
                             }
-                            else if (block.blockType == Block.Type.LightStone){
-                                block.setType(20);
-                                block.update();
-                                break;
-                            }
-                            else if(block.blockType == Block.Type.Glass){
-                                break;
+                            else{
+                                switch(block.blockType){
+                                case Glass:
+                                    break;
+                                case LightStone:
+                                    dim.setBlockAt(20, x, loc.getY(), loc.getZ());
+                                    break;
+                                default:
+                                    continue;
+                                }
                             }
                         }
                         break;
@@ -105,22 +103,26 @@ public class UpdateChunkLamps implements Runnable{
                         for(int x = loc.getX(); x < loc.getX()+go; ++x){
                             Block block =  dim.getBlockAt(x, loc.getY(), loc.getZ());
                             if(night){
-                                if(block.blockType == Block.Type.Glass){
-                                    block.setType(89);
-                                    block.update();
+                                switch(block.blockType){
+                                case Glass: 
+                                    dim.setBlockAt(89, x, loc.getY(), loc.getZ());
                                     break;
-                                }
-                                else if(block.blockType == Block.Type.LightStone){
+                                case LightStone: 
                                     break;
+                                default:
+                                    continue;
                                 }
                             }
-                            else if (block.blockType == Block.Type.LightStone){
-                                block.setType(20);
-                                block.update();
-                                break;
-                            }
-                            else if(block.blockType == Block.Type.Glass){
-                                break;
+                            else{
+                                switch(block.blockType){
+                                case Glass:
+                                    break;
+                                case LightStone:
+                                    dim.setBlockAt(20, x, loc.getY(), loc.getZ());
+                                    break;
+                                default:
+                                    continue;
+                                }
                             }
                         }
                         break;
@@ -129,22 +131,26 @@ public class UpdateChunkLamps implements Runnable{
                         for(int z = loc.getZ(); z > loc.getZ()-go; --z){
                             Block block = dim.getBlockAt(loc.getX(), loc.getY(), z);
                             if(night){
-                                if(block.blockType == Block.Type.Glass){
-                                    block.setType(89);
-                                    block.update();
+                                switch(block.blockType){
+                                case Glass: 
+                                    dim.setBlockAt(89, loc.getX(), loc.getY(), z);
                                     break;
-                                }
-                                else if(block.blockType == Block.Type.LightStone){
+                                case LightStone: 
                                     break;
+                                default:
+                                    continue;
                                 }
                             }
-                            else if (block.blockType == Block.Type.LightStone){
-                                block.setType(20);
-                                block.update();
-                                break;
-                            }
-                            else if(block.blockType == Block.Type.Glass){
-                                break;
+                            else{
+                                switch(block.blockType){
+                                case Glass:
+                                    break;
+                                case LightStone:
+                                    dim.setBlockAt(20, loc.getX(), loc.getY(), z);
+                                    break;
+                                default:
+                                    continue;
+                                }
                             }
                         }
                         break;
@@ -153,22 +159,26 @@ public class UpdateChunkLamps implements Runnable{
                         for(int z = loc.getZ(); z < loc.getZ()+go; ++z){
                             Block block = dim.getBlockAt(loc.getX(), loc.getY(), z);
                             if(night){
-                                if(block.blockType == Block.Type.Glass){
-                                    block.setType(89);
-                                    block.update();
+                                switch(block.blockType){
+                                case Glass: 
+                                    dim.setBlockAt(89, loc.getX(), loc.getY(), z);
                                     break;
-                                }
-                                else if(block.blockType == Block.Type.LightStone){
+                                case LightStone: 
                                     break;
+                                default:
+                                    continue;
                                 }
                             }
-                            else if (block.blockType == Block.Type.LightStone){
-                                block.setType(20);
-                                block.update();
-                                break;
-                            }
-                            else if(block.blockType == Block.Type.Glass){
-                                break;
+                            else{
+                                switch(block.blockType){
+                                case Glass:
+                                    break;
+                                case LightStone:
+                                    dim.setBlockAt(20, loc.getX(), loc.getY(), z);
+                                    break;
+                                default:
+                                    continue;
+                                }
                             }
                         }
                         break;
@@ -177,22 +187,26 @@ public class UpdateChunkLamps implements Runnable{
                         for(int y = loc.getY(); y > loc.getY()-go; --y){
                             Block block = dim.getBlockAt(loc.getX(), y, loc.getZ());
                             if(night){
-                                if(block.blockType == Block.Type.Glass){
-                                    block.setType(89);
-                                    block.update();
+                                switch(block.blockType){
+                                case Glass: 
+                                    dim.setBlockAt(89, loc.getX(), y, loc.getZ());
                                     break;
-                                }
-                                else if(block.blockType == Block.Type.LightStone){
+                                case LightStone: 
                                     break;
+                                default:
+                                    continue;
                                 }
                             }
-                            else if (block.blockType == Block.Type.LightStone){
-                                block.setType(20);
-                                block.update();
-                                break;
-                            }
-                            else if(block.blockType == Block.Type.Glass){
-                                break;
+                            else{
+                                switch(block.blockType){
+                                case Glass:
+                                    break;
+                                case LightStone:
+                                    dim.setBlockAt(20, loc.getX(), y, loc.getZ());
+                                    break;
+                                default:
+                                    continue;
+                                }
                             }
                         }
                         break;
@@ -200,6 +214,8 @@ public class UpdateChunkLamps implements Runnable{
                 }
             }
         }
-        catch(ConcurrentModificationException cme){ }
+        catch(ConcurrentModificationException cme){
+            System.out.println("[StreetLamps-Debug] ERROR @ UCL");
+        }
     }
 }

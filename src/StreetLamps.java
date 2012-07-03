@@ -1,30 +1,36 @@
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.URL;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Logger;
+
+import net.visualillusionsent.viutils.Updater;
+import net.visualillusionsent.viutils.VersionCheck;
 
 public class StreetLamps extends Plugin {
     public final static Logger log = Logger.getLogger("Minecraft");
     private StreetLampsListener SLL;
     private final StreetLampsData SLD = new StreetLampsData();
     
-    public final float version = 1.3F;
-    public float currver = version;
+    private static final String vercheckurl = "http://www.visualillusionsent.net/cmod_plugins/versions.php?plugin=StreetLamps";
+    private static final String updateurl = "https://dl.dropbox.com/u/25586491/CanaryPlugins/StreetLamps.jar";
+
     public final String name = "StreetLamps";
     public final String author = "DarkDiplomat";
-    public static final ScheduledThreadPoolExecutor threadpool = new ScheduledThreadPoolExecutor(3);
+    
+    public static final String version = "1.3.0";
+    public static final ScheduledThreadPoolExecutor threadpool = new ScheduledThreadPoolExecutor(4);
+    public static final VersionCheck vercheck = new VersionCheck(version, vercheckurl);
+    
+    public static final Updater update = new Updater(updateurl, "/plugins/StreetLamps.jar", "StreetLamps", log);
 
     public void enable() {
         log.info(name+" "+version+" "+author+" enabled!");
-        if(!isLatest()){
-            log.info(name+": New Version Availble! "+currver);
+        if(!vercheck.isLatest()){
+            log.info(name+": New Version Availble! v"+vercheck.getCurrentVersion());
+            log.info(name+": Use '/streetlamps updateplugin' to update");
         }
     }
     
     public void initialize(){
         SLL = new StreetLampsListener(this, SLD);
-        threadpool.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
         etc.getLoader().addListener(PluginLoader.Hook.TIME_CHANGE, SLL, this, PluginListener.Priority.MEDIUM);
         etc.getLoader().addListener(PluginLoader.Hook.SIGN_CHANGE, SLL, this, PluginListener.Priority.MEDIUM);
         etc.getLoader().addListener(PluginLoader.Hook.BLOCK_BROKEN, SLL, this, PluginListener.Priority.MEDIUM);
@@ -33,27 +39,10 @@ public class StreetLamps extends Plugin {
         etc.getLoader().addListener(PluginLoader.Hook.SERVERCOMMAND, SLL, this, PluginListener.Priority.MEDIUM);
         etc.getLoader().addListener(PluginLoader.Hook.BLOCK_RIGHTCLICKED, SLL, this, PluginListener.Priority.MEDIUM);
         etc.getLoader().addListener(PluginLoader.Hook.CHUNK_LOADED, SLL, this, PluginListener.Priority.MEDIUM);
-        etc.getLoader().addListener(PluginLoader.Hook.CHUNK_UNLOAD, SLL, this, PluginListener.Priority.MEDIUM);
     }
     
     public void disable() {
-        SLD.save();
-        threadpool.shutdownNow();
+        threadpool.shutdown();
         log.info(name+" "+version+" disabled!");
-    }
-    
-    public boolean isLatest(){
-        try{
-            BufferedReader in = new BufferedReader(new InputStreamReader(new URL("http://visualillusionsent.net/cmod_plugins/versions.php?plugin="+name).openStream()));
-            String inputLine;
-            if ((inputLine = in.readLine()) != null) {
-                currver = Float.valueOf(inputLine);
-            }
-            in.close();
-            return version >= currver;
-        } 
-        catch (Exception E) {
-        }
-        return true;
     }
 }

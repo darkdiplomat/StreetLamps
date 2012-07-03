@@ -43,17 +43,8 @@ public class LampLocation {
     public boolean equals(Object obj){
         if(obj instanceof LampLocation){
             LampLocation check = (LampLocation)obj;
-            if(check.getX() == this.getX()){
-                if(check.getY() == this.getY()){
-                    if(check.getZ() == this.getZ()){
-                        if(check.getDimension() == this.getDimension()){
-                            if(check.getWorld().equals(this.getWorld())){
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
+            return check.getX() == this.getX() && check.getZ() == this.getZ() && 
+                    check.getDimension() == this.getDimension() && check.getWorld().equals(this.getWorld());
         }
         return false;
     }

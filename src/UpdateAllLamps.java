@@ -1,12 +1,11 @@
-import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
 
-public class UpdateAllLamps implements Runnable{
+public class UpdateAllLamps extends Thread{
     private boolean night, forceload;
-    private ArrayList<LampChunk> chunks;
+    private List<LampChunk> chunks;
     
-    public UpdateAllLamps(ArrayList<LampChunk> chunks,  boolean night, boolean forceload){
+    public UpdateAllLamps(List<LampChunk> chunks,  boolean night, boolean forceload){
         this.night = night;
         this.chunks = chunks;
     }
@@ -15,20 +14,23 @@ public class UpdateAllLamps implements Runnable{
         synchronized(chunks){
             try{
                 for(LampChunk chunk : chunks){
-                    if(forceload && !chunk.isLoaded()){
+                    if(forceload){
                         chunk.load();
                     }
-                    else if(chunk.isLoaded()){
-                        StreetLamps.threadpool.schedule(new UpdateChunkLamps(chunk, night), 5L, TimeUnit.MILLISECONDS);
+                    if(chunk.isLoaded()){
+                        UpdateChunkLamps.update(chunk, night);
+                        try{
+                            Thread.sleep(5);
+                        }
+                        catch(InterruptedException ie){
+                            continue;
+                        }
                     }
-                    try{
-                        Thread.sleep(10L);
-                    }
-                    catch(InterruptedException ie){}
                 }
             }
-            catch(ConcurrentModificationException cme){}
-            
+            catch(ConcurrentModificationException cme){
+                System.out.println("[StreetLamps-Debug] ERROR @ UAL");
+            }
         }
     }
 }

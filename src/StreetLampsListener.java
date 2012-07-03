@@ -1,5 +1,7 @@
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
+import java.util.Collections;
+
+import net.visualillusionsent.viutils.UpdateException;
 
 public class StreetLampsListener extends PluginListener{
     private boolean isDay = true;
@@ -62,13 +64,19 @@ public class StreetLampsListener extends PluginListener{
         if(newValue){
             isRain = true;
             if(isDay){
-                StreetLamps.threadpool.schedule(new UpdateAllLamps(SLD.getallchunks(), true, false), 5L, TimeUnit.MILLISECONDS);
+                ArrayList<LampChunk> chunks = new ArrayList<LampChunk>(SLD.getallchunks());
+                Collections.copy(chunks, SLD.getallchunks());
+                Collections.shuffle(chunks); //Randomize the list a little
+                StreetLamps.threadpool.execute(new UpdateAllLamps(chunks, true, false));
             }
         }
         else{
             isRain = false;
             if(isDay){
-                StreetLamps.threadpool.schedule(new UpdateAllLamps(SLD.getallchunks(), false, false), 5L, TimeUnit.MILLISECONDS);
+                ArrayList<LampChunk> chunks = new ArrayList<LampChunk>(SLD.getallchunks());
+                Collections.copy(chunks, SLD.getallchunks());
+                Collections.shuffle(chunks); //Randomize the list a little
+                StreetLamps.threadpool.execute(new UpdateAllLamps(chunks, false, false));
             }
         }
         return false;
@@ -79,7 +87,10 @@ public class StreetLampsListener extends PluginListener{
             if(isDay){
                 isDay = false;
                 if(!isRain){
-                    StreetLamps.threadpool.schedule(new UpdateAllLamps(SLD.getallchunks(), true, false), 5L, TimeUnit.MILLISECONDS);
+                    ArrayList<LampChunk> chunks = new ArrayList<LampChunk>(SLD.getallchunks());
+                    Collections.copy(chunks, SLD.getallchunks());
+                    Collections.shuffle(chunks); //Randomize the list a little
+                    StreetLamps.threadpool.execute(new UpdateAllLamps(chunks, true, false));
                 }
             }
         }
@@ -87,7 +98,10 @@ public class StreetLampsListener extends PluginListener{
             if(!isDay){
                 isDay = true;
                 if(!isRain){
-                    StreetLamps.threadpool.schedule(new UpdateAllLamps(SLD.getallchunks(), false, false), 5L, TimeUnit.MILLISECONDS);
+                    ArrayList<LampChunk> chunks = new ArrayList<LampChunk>(SLD.getallchunks());
+                    Collections.copy(chunks, SLD.getallchunks());
+                    Collections.shuffle(chunks); //Randomize the list a little
+                    StreetLamps.threadpool.execute(new UpdateAllLamps(chunks, false, false));
                 }
             }
         }
@@ -112,7 +126,7 @@ public class StreetLampsListener extends PluginListener{
                         glow.update();
                     }
                 }
-                if(player.isAdmin()){
+                if(player.canUseCommand("/streetlampsadmin")){
                     LampLocation loc = new LampLocation(sign.getWorld().getName(), sign.getWorld().getType().toIndex(), sign.getX(), sign.getY(), sign.getZ());
                     SLD.addLoc(loc);
                 }
@@ -165,32 +179,48 @@ public class StreetLampsListener extends PluginListener{
                     }
                     return true;
                 }
-                else if(args[1].equalsIgnoreCase("forceupdate") && player.isAdmin()){
+                else if(args[1].equalsIgnoreCase("forceupdate") && player.canUseCommand("/streetlampsadmin")){
                     if(!isDay || isRain){
-                        StreetLamps.threadpool.schedule(new UpdateAllLamps(SLD.getallchunks(), true, true), 5L, TimeUnit.MILLISECONDS);
+                        ArrayList<LampChunk> chunks = new ArrayList<LampChunk>(SLD.getallchunks());
+                        Collections.copy(chunks, SLD.getallchunks());
+                        Collections.shuffle(chunks); //Randomize the list a little
+                        StreetLamps.threadpool.execute(new UpdateAllLamps(chunks, true, true));
                     }
                     else{
-                        StreetLamps.threadpool.schedule(new UpdateAllLamps(SLD.getallchunks(), false, true), 5L, TimeUnit.MILLISECONDS);
+                        ArrayList<LampChunk> chunks = new ArrayList<LampChunk>(SLD.getallchunks());
+                        Collections.copy(chunks, SLD.getallchunks());
+                        Collections.shuffle(chunks); //Randomize the list a little
+                        StreetLamps.threadpool.execute(new UpdateAllLamps(chunks, false, true));
                     }
                     player.sendMessage("§6StreetLamps Activating!");
                     return true;
                 }
+                else if (args[1].toLowerCase().equals("updateplugin") && player.canUseCommand("/streetlampsadmin")){
+                    try {
+                        if(StreetLamps.update.performUpdate()){
+                            etc.getLoader().reloadPlugin(SL.name);
+                        }
+                        else{
+                            player.notify("Failed to update...");
+                        }
+                    }
+                    catch (UpdateException e) {
+                        player.notify(e.getMessage());
+                    }
+                }
             }
             else{
-                player.sendMessage("§9--§6 "+SL.name+" v"+SL.version+" by §a"+SL.author+" §9--");
-                if(!SL.isLatest()){
-                    player.sendMessage("§9--§6 There is a new version availible! v"+SL.currver+" §9--");
-                }
-                else{
-                    player.sendMessage("§9--§6 Latest Version Installed! §9--");
+                player.sendMessage("§9--§6 "+SL.name+" v"+StreetLamps.version+" by §a"+SL.author+" §9--");
+                if(player.canUseCommand("/streetlampsadmin")){
+                    if(!StreetLamps.vercheck.isLatest()){
+                        player.sendMessage("§9--§6 There is a new version availible! v"+StreetLamps.vercheck.getCurrentVersion()+" §9--");
+                    }
+                    else{
+                        player.sendMessage("§9--§6 Latest Version Installed! §9--");
+                    }
                 }
                 player.sendMessage("§9--§6 There are §2"+SLD.getAllLamps().size()+"§6 Lamps installed on this server. §9--");
                 return true;
-            }
-        }
-        else if(args[0].equalsIgnoreCase("/#stop") || args[0].equalsIgnoreCase("/#save-all")){
-            if(player.isOp()){
-                SLD.save();
             }
         }
         return false;
@@ -199,31 +229,12 @@ public class StreetLampsListener extends PluginListener{
     public void onChunkLoaded(Chunk chunk){
         LampChunk lchunk = SLD.getChunk(new LampChunk(chunk));
         if(lchunk != null){
-            if(!lchunk.isLoaded()){
-                lchunk.setLoaded(true);
-            }
             if(!isDay || isRain){
-                StreetLamps.threadpool.schedule(new UpdateChunkLamps(lchunk, true), 5L, TimeUnit.MILLISECONDS);
+                UpdateChunkLamps.update(lchunk, true);
             }
             else{
-                StreetLamps.threadpool.schedule(new UpdateChunkLamps(lchunk, false), 5L, TimeUnit.MILLISECONDS);
+                UpdateChunkLamps.update(lchunk, false);
             }
         }
-    }
-    
-    public void onChunkUnload(Chunk chunk){
-        LampChunk lchunk = SLD.getChunk(new LampChunk(chunk));
-        if(lchunk != null){
-            if(lchunk.isLoaded()){
-                lchunk.setLoaded(false);
-            }
-        }
-    }
-    
-    public boolean onConsoleCommand(String[] args){
-        if(args[0].equalsIgnoreCase("stop") || args[0].equalsIgnoreCase("save-all")){
-            SLD.save();
-        }
-        return false;
     }
 }

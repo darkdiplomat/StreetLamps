@@ -4,7 +4,6 @@ public class LampChunk {
     private ArrayList<LampLocation> lamps = new ArrayList<LampLocation>();
     private int x, z, dimension;
     private String world;
-    private boolean loaded = false;
     private Chunk chunk;
     
     public LampChunk(int x, int z, String world, int dimension){
@@ -51,27 +50,20 @@ public class LampChunk {
         }
     }
     
-    public void setLoaded(boolean loaded){
-        this.loaded = loaded;
-    }
-    
     public boolean isLoaded(){
         World[] world = etc.getServer().getWorld(this.world);
         if(world != null){
             World dim = world[dimension];
-            if(dim.isChunkLoaded(x << 4, 64, z << 4)){
-                loaded = true;
-            }
+            return dim.isChunkLoaded(x, z);
         }
-        return loaded;
+        return false;
     }
     
     public void load(){
         World[] world = etc.getServer().getWorld(this.world);
         if(world != null){
             World dim = world[dimension];
-            dim.loadChunk(x << 4, 64, z << 4);
-            loaded = true;
+            dim.loadChunk(x, z);
         }
     }
     
@@ -81,7 +73,7 @@ public class LampChunk {
         }
         if(isLoaded()){
             World dim = etc.getServer().getWorld(this.world)[dimension];
-            this.chunk = dim.getChunk(x << 4, 64, z << 4);
+            this.chunk = dim.getChunk(x, z);
             return chunk;
         }
         return null;
@@ -108,15 +100,13 @@ public class LampChunk {
     public boolean equals(Object obj){
         if(obj instanceof LampLocation){
             LampLocation check = (LampLocation)obj;
-            if(check.getX() == this.getX()){
-                if(check.getZ() == this.getZ()){
-                    if(check.getDimension() == this.getDimension()){
-                        if(check.getWorld().equals(this.getWorld())){
-                            return true;
-                        }
-                    }
-                }
-            }
+            return check.getX() == this.getX() && check.getZ() == this.getZ() && 
+                    check.getDimension() == this.getDimension() && check.getWorld().equals(this.getWorld());
+        }
+        else if(obj instanceof LampChunk){
+            LampChunk daChunk = (LampChunk)obj;
+            return daChunk.getX() == this.getX() && daChunk.getZ() == this.getZ() &&
+                    daChunk.getDimension() == this.getDimension() && daChunk.getWorld().equals(this.getWorld());
         }
         return false;
     }
